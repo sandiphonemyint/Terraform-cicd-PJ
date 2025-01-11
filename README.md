@@ -1,164 +1,180 @@
-# Globally Autoscaling Web Service on Google Cloud (Interstellar Themed)
+# Terraform CI/CD with GitHub Actions: Globally Autoscaling Web Application
 
-This Terraform project deploys a globally autoscaling web service on Google Cloud Platform, inspired by the movie *Interstellar*. It demonstrates concepts such as:
+This repository demonstrates how to build a CI/CD pipeline using GitHub Actions to automate the deployment of a globally autoscaling web application on Google Cloud Platform (GCP) using Terraform.
 
-*   **Infrastructure as Code (IaC):** All resources are defined using Terraform, making deployments repeatable and predictable.
-*   **Autoscaling:** Instance groups automatically scale based on CPU utilization to handle varying traffic loads.
-*   **Global Load Balancing:** A global HTTP(S) load balancer distributes traffic across instances in multiple regions, providing high availability and low latency.
-*   **Managed Instance Groups (MIGs):** Regional MIGs provide resilience and self-healing for the application instances.
-*   **Cloud NAT:** Enables instances without public IP addresses to access the internet for package downloads and updates.
-*   **Google Managed SSL Certificates:** Provides HTTPS encryption for secure communication.
-*   **Cloud DNS:** Manages DNS records for the application.
-*   **Interstellar Theme:** The web application and supporting resources are named and styled with an *Interstellar* theme.
+**Project Structure:**
 
-## Architecture
+The project deploys a simple "Interstellar" themed web application across two regions (`us-central1` and `europe-west2`) using:
 
-The architecture consists of the following components:
+*   **Managed Instance Groups (MIGs):** For autoscaling and resilience.
+*   **Global HTTPS Load Balancer:** For traffic distribution and SSL termination.
+*   **Cloud NAT:** For providing internet access to instances without public IPs.
+*   **Google Cloud Storage:** To store the static website files.
+*   **Cloud DNS:** To manage the DNS records.
 
-1.  **Instance Template:** Defines the configuration for the instances, including machine type, image, and startup script.
-2.  **Managed Instance Groups (MIGs):** Two regional MIGs are created, one in `us-central1` and another in `eu-west2`, providing high availability and geographical distribution.
-3.  **Global HTTP(S) Load Balancer:** Distributes traffic across the MIGs, ensuring low latency and resilience.
-4.  **Cloud NAT:** Enables instances in both regions to access the internet for package downloads and updates, even though they don't have public IP addresses.
-5.  **Cloud DNS:** A DNS record is created to point to the load balancer's IP address.
-6.  **Google Managed SSL Certificate:** An SSL certificate is provisioned for the application's domain, enabling secure HTTPS connections.
-7.  **Storage Bucket:** A Google Cloud Storage bucket stores the static files for the web application (`index.html`, `main.css`).
-8.  **Firewall Rules:** Firewall rules allow HTTP, HTTPS, SSH, and ICMP traffic to the instances. Also, allows all egress traffic.
+**CI/CD Pipeline:**
 
-<img src="architecture/devops-project-2-arch-diagram.svg" alt="Global Web Service on Google Cloud">
+The GitHub Actions workflow automates the following:
+
+*   **`terraform init`:** Initializes the Terraform working directory.
+*   **`terraform plan`:** Generates a Terraform plan on pull requests. The plan is also added as a comment to the pull request.
+*   **`terraform apply`:** Applies the Terraform plan automatically when changes are merged into the `main` branch.
 
 ## Prerequisites
 
-*   **Google Cloud Project:** You need a Google Cloud project with billing enabled.
-*   **Terraform:** Install Terraform on your local machine. ([https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli))
-*   **gcloud CLI:** Install and configure the Google Cloud CLI. ([https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install))
-*   **DNS Zone:** You need a managed DNS zone in Cloud DNS for your domain.
+Before you begin, make sure you have the following:
 
-## Modules
+1.  **Google Cloud Account:** A Google Cloud account with billing enabled.
+2.  **Google Cloud Project:** Create a project in the Google Cloud Console. Note down your Project ID.
+3.  **Service Account:**
+    *   Create a service account in your Google Cloud project.
+    *   Grant the following roles to your service account:
+        *   `roles/compute.networkAdmin`
+        *   `roles/compute.instanceAdmin.v1`
+        *   `roles/compute.securityAdmin`
+        *   `roles/storage.admin`
+        *   `roles/dns.admin`
+        *   `roles/iam.serviceAccountKeyAdmin`
+        *   `roles/iam.serviceAccountUser`
+    *   Download the service account key as a JSON file and store it securely. You'll need to add it as a GitHub secret.
 
-The Terraform code is organized into modules for better maintainability and reusability:
+4.  **Enable APIs:**
+    *   Make sure the following APIs are enabled for your project:
+        *   Compute Engine API
+        *   Cloud DNS API
+        *   Cloud Resource Manager API
+        *   Identity and Access Management (IAM) API
+        *   Service Usage API
 
-*   **`instance_template`:** Creates an instance template.
-*   **`mig`:** Creates a regional managed instance group.
-*   **`firewall`:** Creates firewall rules.
-*   **`load_balancer`:** Creates a global HTTP(S) load balancer, health check, backend service, URL map, target proxy, and forwarding rule.
-*   **`storage_bucket`:** Creates a Google Cloud Storage bucket and uploads static website files.
+5.  **gcloud CLI:** Install and configure the Google Cloud CLI on your local machine. ([https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install))
+6.  **Terraform:** Install Terraform (v1.6.6 or later) on your local machine. ([https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/install-cli))
+7.  **GitHub Account:** A GitHub account to fork and clone this repository.
+8.  **Cloud DNS:**
+    *   Create a public managed DNS zone in Cloud DNS for your domain (e.g., `google-cloud-pocs.dev`).
 
-## Variables
+## Getting Started
 
-The following variables can be customized in the `terraform.tfvars` file:
+1.  **Fork the Repository:**
+    *   Fork this repository (`https://github.com/SamPriyadarshi/terraform-ci-cd`) to your own GitHub account.
 
-| Variable                        | Description                                                                          | Default         |
-| :------------------------------ | :----------------------------------------------------------------------------------- | :-------------- |
-| `project_id`                    | Your Google Cloud project ID.                                                        |                 |
-| `region`                        | The primary region for resources (e.g., `us-central1`).                               | `us-central1`   |
-| `secondary_region`              | The secondary region for the second instance group (e.g., `eu-west2`).                 | `europe-west2`  |
-| `app_name`                      | A name for your application, used for resource naming.                               | `web-app`       |
-| `network_name`                  | The name of the VPC network.                                                         | `web-app-network` |
-| `ssh_source_ranges`             | Allowed source IP ranges for SSH access.                                             | `0.0.0.0/0`     |
-| `source_image`                  | The source image for the instances.                                                  | `debian-cloud/debian-11` |
-| `machine_type`                  | The machine type for the instances.                                                 | `e2-medium`     |
-| `min_replicas`                  | The minimum number of instances in each MIG.                                       | `2`             |
-| `max_replicas`                  | The maximum number of instances in each MIG.                                       | `5`             |
-| `cpu_target_utilization`         | The target CPU utilization for autoscaling.                                         | `0.8`           |
-| `bucket_name`                   | The name of the GCS bucket for website files.                                        |                 |
-| `bucket_location`               | The location of the GCS bucket.                                                      | `US`            |
-| `force_destroy`                 | Whether to force delete the bucket even if it contains objects.                       | `false`         |
-| `health_check_interval`          | The interval for the HTTP health check.                                              | `5`             |
-| `health_check_healthy_threshold` | The healthy threshold for the HTTP health check.                                     | `1`             |
-| `health_check_unhealthy_threshold` | The unhealthy threshold for the HTTP health check.                                   | `5`             |
-| `health_check_timeout`           | The timeout for the HTTP health check.                                               | `5`             |
-| `auto_healing_initial_delay_sec` | The initial delay for auto-healing.                                                 | `60`            |
-| `dns_zone_name`                 | The name of your DNS zone (e.g., `google-cloud-pocs.dev`).                          |                 |
-| `dns_managed_zone_name`         | The name of the managed DNS zone in Cloud DNS.                                      |                 |
-| `dns_subdomain`                 | The subdomain for the application (e.g., `galactic-empire`).                         | `galactic-empire` |
-
-## Outputs
-
-The following outputs are available after deployment:
-
-| Output                       | Description                                                                |
-| :--------------------------- | :------------------------------------------------------------------------- |
-| `instance_template_id`         | The ID of the instance template.                                           |
-| `instance_group_id`           | The ID of the instance group in `us-central1` region.                      |
-| `health_check_id`            | The ID of the HTTP health check.                                           |
-| `backend_service_id`         | The ID of the backend service.                                             |
-| `forwarding_rule_ip_address` | The external IP address of the load balancer.                               |
-| `url_map_id`                 | The ID of the URL map.                                                    |
-
-## Usage
-
-1.  **Clone the repository:**
+2.  **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/SamPriyadarshi/real-world-devops-projects.git
-    cd 1-global-web-application
+    git clone [https://github.com/](https://github.com/)SamPriyadarshi/terraform-ci-cd.git
+    cd terraform-ci-cd
     ```
 
-2.  **Login to your Google Cloud account:**
-    ```bash
-    gcloud auth application-default login
-    ```
+3.  **Create a Google Cloud Storage Bucket for Terraform State:**
 
-3.  **Initialize Terraform:**
+    *   Create a GCS bucket to store your Terraform state remotely. You can use the `gcloud` CLI:
 
     ```bash
-    terraform init
+    gsutil mb -b on -l us-central1 gs://<your-unique-bucket-name>
+    gsutil versioning set on gs://<your-unique-bucket-name>
     ```
 
-4.  **Create `terraform.tfvars`:**
+    *   Replace `<your-unique-bucket-name>` with a globally unique name for your bucket (e.g., `your-project-name-tfstate`).
 
-    Create a file named `terraform.tfvars` and set the necessary variable values. For example:
+4.  **Update Terraform Backend Configuration:**
 
-    ```
-    project_id              = "your-gcp-project-id"
-    bucket_name             = "your-unique-bucket-name"
-    dns_zone_name           = "your-dns-zone-name"
-    dns_managed_zone_name = "your-dns-managed-zone-name"
-    ```
-
-5.  **Configure the Backend:**
-    *   Update the `backend "gcs"` block in your `main.tf` file with the correct bucket name:
+    *   Modify the `main.tf` file and update the `backend "gcs"` block with your bucket name:
 
     ```terraform
     terraform {
-      # ... other configuration ...
       backend "gcs" {
-        bucket = "real-world-devops-state" # Replace with your bucket name
-        prefix = "terraform/state"        # Optional prefix
+        bucket = "your-unique-bucket-name"  # Replace with your bucket name
+        prefix = "terraform/state"
       }
+      # ... rest of the configuration ...
     }
     ```
-    *   Run `terraform init` again to initialize the backend.
 
-6.  **Deploy the infrastructure:**
+5.  **Create `terraform.tfvars`:**
 
-    ```bash
-    terraform plan
-    terraform apply
+    *   Create a file named `terraform.tfvars` in the root directory of the project.
+    *   Populate it with the required variables. Here's an example:
+
+    ```
+    project_id              = "your-gcp-project-id"  # Replace with your Project ID
+    bucket_name             = "your-website-bucket-name"  # Replace with a unique bucket name for website files
+    dns_zone_name           = "google-cloud-pocs-dev" # Replace with your DNS zone name
+    dns_managed_zone_name = "google-cloud-pocs-dev"  # Replace with your DNS managed zone name
     ```
 
-7.  **Access the application:**
+6.  **Add GitHub Secrets:**
 
-    Once the deployment is complete, you can access the application using the `forwarding_rule_ip_address` output or by using the DNS name you configured (e.g., `galactic-empire.google-cloud-pocs.dev`).
+    *   In your forked GitHub repository, go to "Settings" -> "Secrets and variables" -> "Actions".
+    *   Create the following repository secrets:
+        *   **`GCP_CREDENTIALS`:** Paste the entire contents of your service account JSON key file.
 
-## Interstellar Theme
+7.  **Update the `startup_script.tpl`:**
 
-The web application displays a one-liner inspired by the movie *Interstellar*, along with the region from which the instance serving the request originated. The one-liner can be customized in the `files/index.html` file.
+    *   Modify the `startup_script.tpl` file inside `instance_template` module to update the bucket name. Replace `your-website-bucket-name` with the name of the bucket you created in step 5.
 
-## Notes
+8.  **Push Changes to your Fork:**
+    *   Commit and push the changes you made to your forked repository:
+    ```bash
+    git add .
+    git commit -m "Configure Terraform backend and variables"
+    git push origin main
+    ```
 
-*   The default firewall rules allow all egress traffic. In a production environment, it's highly recommended to restrict egress traffic to only necessary destinations.
-*   The instance startup script installs Apache and configures it to serve the website from the GCS bucket.
-*   The SSL certificate provisioning process might take some time.
-*   Terraform state is stored remotely in a dedicated Google Cloud Storage bucket (`real-world-devops-state`) to enable collaboration and provide a more robust state management solution.
+## Workflow Overview
 
-## License
+The repository contains a GitHub Actions workflow (`.github/workflows/terraform.yml`) that automates the Terraform deployment process:
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+*   **On Pull Request:**
+    *   `terraform init`
+    *   `terraform plan` (saved as an artifact)
+    *   Adds a comment to the PR with the plan summary.
+*   **On Push to `main`:**
+    *   `terraform init`
+    *   `terraform apply` (using the saved plan from the pull request, if applicable)
 
-## Cleanup
+## Triggering the Workflow
 
-To destroy the infrastructure, run:
+1.  **Create a Feature Branch:**
+    *   Create a new branch from `main` for your changes:
+
+        ```bash
+        git checkout -b my-feature-branch
+        ```
+
+2.  **Make Changes:**
+    *   Make your desired changes to the Terraform code (e.g., modify website content, change instance types, etc.).
+
+3.  **Commit and Push:**
+    *   Commit your changes and push them to your feature branch:
+
+        ```bash
+        git add .
+        git commit -m "Your commit message"
+        git push origin my-feature-branch
+        ```
+
+4.  **Create a Pull Request:**
+    *   Create a pull request on GitHub from your feature branch to the `main` branch.
+
+5.  **Review Terraform Plan:**
+    *   The GitHub Actions workflow will automatically run `terraform init` and `terraform plan`.
+    *   Review the plan in the workflow logs and in the PR comment added by the workflow.
+
+6.  **Merge Pull Request:**
+    *   Once the plan is approved, merge the pull request into `main`.
+
+7.  **Terraform Apply:**
+    *   The GitHub Actions workflow will automatically run `terraform apply` to deploy the changes to your Google Cloud project.
+
+## Accessing the Web Application
+
+After the workflow has successfully completed:
+
+*   You can find the external IP address of the load balancer in the workflow logs or in the Google Cloud Console (Compute Engine -> Load balancing).
+*   You can also access the application using the DNS name configured in Cloud DNS (e.g., `galactic-empire.google-cloud-pocs.dev`).
+
+## Cleaning Up
+
+To delete the resources created by Terraform, run the following command **locally**:
 
 ```bash
 terraform destroy
