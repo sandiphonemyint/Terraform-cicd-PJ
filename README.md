@@ -60,7 +60,7 @@ Before you begin, make sure you have the following:
 2.  **Clone the Repository:**
 
     ```bash
-    git clone [https://github.com/](https://github.com/)SamPriyadarshi/terraform-ci-cd.git
+    git clone https://github.com/SamPriyadarshi/terraform-ci-cd.git
     cd terraform-ci-cd
     ```
 
