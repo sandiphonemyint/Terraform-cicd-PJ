@@ -38,16 +38,6 @@ jobs:
         id: plan
         run: terraform plan -out=tfplan
 
-      - name: Create or Update PR Comment
-        uses: peter-evans/create-or-update-comment@v3
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            **Terraform Plan Summary**
-            ```
-            ${{ steps.plan.outputs.stdout }}
-            ```
-
   terraform_apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
