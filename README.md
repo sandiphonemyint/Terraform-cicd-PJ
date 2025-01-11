@@ -1,4 +1,4 @@
-# Globally Autoscaling Web Service on Google Cloud 
+# Globally Autoscaling Web Service on Google Cloud (Interstellar Themed)
 
 This Terraform project deploys a globally autoscaling web service on Google Cloud Platform, inspired by the movie *Interstellar*. It demonstrates concepts such as:
 
