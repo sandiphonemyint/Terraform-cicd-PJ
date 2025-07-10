@@ -1,4 +1,4 @@
-# Terraform CI/CD with GitHub Actions: Globally Autoscaling Web Application
+# Terraform CI/CD with GitHub Actions: Globally Autoscaling Web Application (testing)
 
 This repository demonstrates how to build a CI/CD pipeline using GitHub Actions to automate the deployment of a globally autoscaling web application on Google Cloud Platform (GCP) using Terraform.
 
