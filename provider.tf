@@ -11,7 +11,7 @@ terraform {
   }
 
     backend "gcs" {
-    bucket = "real-world-devops-state" # Replace with your bucket name
+    bucket = "sandi-bucketone" # Replace with your bucket name
     prefix = "terraform/state"
   }
 }
